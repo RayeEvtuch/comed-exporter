@@ -105,7 +105,8 @@ class ComEdCollector(object):
                     'type': 'spot',
                 },
                 value=spot_price['price'],
-                timestamp=spot_price['millisUTC']
+                # Convert from milliseconds to seconds
+                timestamp=int(spot_price['millisUTC'])/1000
             )
 
         for price_prediction in self.price_prediction_data_today:
