@@ -32,6 +32,63 @@ def convert_comed_date(datestring: str):
 
 class ComEdCollector(object):
 
+    last_poll = datetime.now()-timedelta(minutes=5)
+
+    def update_cache(self):
+
+        if datetime.now()-self.last_poll > timedelta(minutes=5):
+            self.last_poll = datetime.now()
+            print('polling')
+
+            # Get the spot prices from ComEd
+            spot_price_response = requests.get(
+                url='https://hourlypricing.comed.com/api?type=5minutefeed')
+            self.spot_price_data = json.loads(spot_price_response.content)
+
+            # Get today's price predictions from ComEd
+            price_prediction_response = requests.get(
+                url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=daynexttoday&date={}'.format(
+                    datetime.now().strftime('%Y%m%d')
+                ))
+            # Fix the bad JSON unquoted date strings
+            fixed_price_prediction_response = price_prediction_response.content.decode(
+            ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
+            self.price_prediction_data_today = json.loads(
+                fixed_price_prediction_response)
+
+            # Get tommorow's price predictions from ComEd
+            price_prediction_response = requests.get(
+                url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=daynexttoday&date={}'.format(
+                    (datetime.now()+timedelta(days=1)).strftime('%Y%m%d')
+                ))
+            # Fix the bad JSON unquoted date strings
+            fixed_price_prediction_response = price_prediction_response.content.decode(
+            ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
+            self.price_prediction_data_tomorrow = json.loads(
+                fixed_price_prediction_response)
+
+            # Get today's actual prices from ComEd
+            price_actual_response = requests.get(
+                url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=day&date={}'.format(
+                    datetime.now().strftime('%Y%m%d')
+                ))
+            # Fix the bad JSON unquoted date strings
+            fixed_price_actual_response = price_actual_response.content.decode(
+            ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
+            self.price_actual_data_today = json.loads(
+                fixed_price_actual_response)
+
+            # Get yesterday's actual prices from ComEd
+            price_actual_response = requests.get(
+                url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=day&date={}'.format(
+                    (datetime.now()-timedelta(days=1)).strftime('%Y%m%d')
+                ))
+            # Fix the bad JSON unquoted date strings
+            fixed_price_actual_response = price_actual_response.content.decode(
+            ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
+            self.price_actual_data_yesterday = json.loads(
+                fixed_price_actual_response)
+
     def collect(self):
 
         # Set up the main metric
@@ -44,11 +101,9 @@ class ComEdCollector(object):
             ],
         )
 
-        # Get the spot prices from ComEd
-        spot_price_response = requests.get(
-            url='https://hourlypricing.comed.com/api?type=5minutefeed')
-        spot_price_data = json.loads(spot_price_response.content)
-        for spot_price in spot_price_data:
+        self.update_cache()
+
+        for spot_price in self.spot_price_data:
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
@@ -59,16 +114,7 @@ class ComEdCollector(object):
                 timestamp=spot_price['millisUTC']
             )
 
-        # Get today's price predictions from ComEd
-        price_prediction_response = requests.get(
-            url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=daynexttoday&date={}'.format(
-                datetime.now().strftime('%Y%m%d')
-            ))
-        # Fix the bad JSON unquoted date strings
-        fixed_price_prediction_response = price_prediction_response.content.decode(
-        ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
-        price_prediction_data = json.loads(fixed_price_prediction_response)
-        for price_prediction in price_prediction_data:
+        for price_prediction in self.price_prediction_data_today:
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
@@ -79,16 +125,7 @@ class ComEdCollector(object):
                 timestamp=convert_comed_date(price_prediction[0])
             )
 
-        # Get tommorow's price predictions from ComEd
-        price_prediction_response = requests.get(
-            url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=daynexttoday&date={}'.format(
-                (datetime.now()+timedelta(days=1)).strftime('%Y%m%d')
-            ))
-        # Fix the bad JSON unquoted date strings
-        fixed_price_prediction_response = price_prediction_response.content.decode(
-        ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
-        price_prediction_data = json.loads(fixed_price_prediction_response)
-        for price_prediction in price_prediction_data:
+        for price_prediction in self.price_prediction_data_tomorrow:
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
@@ -99,36 +136,7 @@ class ComEdCollector(object):
                 timestamp=convert_comed_date(price_prediction[0])
             )
 
-        # Get today's actual prices from ComEd
-        price_actual_response = requests.get(
-            url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=day&date={}'.format(
-                datetime.now().strftime('%Y%m%d')
-            ))
-        # Fix the bad JSON unquoted date strings
-        fixed_price_actual_response = price_actual_response.content.decode(
-        ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
-        price_actual_data = json.loads(fixed_price_actual_response)
-        for price_actual in price_actual_data:
-            kwh_price.add_sample(
-                name='kwh_price',
-                labels={
-                    'provider': 'comed',
-                    'type': 'actual',
-                },
-                value=price_actual[1],
-                timestamp=convert_comed_date(price_actual[0])
-            )
-
-        # Get yesterday's actual prices from ComEd
-        price_actual_response = requests.get(
-            url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=day&date={}'.format(
-                (datetime.now()-timedelta(days=1)).strftime('%Y%m%d')
-            ))
-        # Fix the bad JSON unquoted date strings
-        fixed_price_actual_response = price_actual_response.content.decode(
-        ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
-        price_actual_data = json.loads(fixed_price_actual_response)
-        for price_actual in price_actual_data:
+        for price_actual in self.price_actual_data_yesterday + self.price_actual_data_today:
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
