@@ -109,38 +109,29 @@ class ComEdCollector(object):
                 timestamp=int(spot_price['millisUTC'])/1000
             )
 
-        for price_prediction in self.price_prediction_data_today:
-            kwh_price.add_sample(
-                name='kwh_price',
-                labels={
-                    'provider': 'comed',
-                    'type': 'predicted',
-                },
-                value=price_prediction[1],
-                timestamp=convert_comed_date(price_prediction[0])
-            )
-
-        for price_prediction in self.price_prediction_data_tomorrow:
-            kwh_price.add_sample(
-                name='kwh_price',
-                labels={
-                    'provider': 'comed',
-                    'type': 'predicted',
-                },
-                value=price_prediction[1],
-                timestamp=convert_comed_date(price_prediction[0])
-            )
+        for price_prediction in self.price_prediction_data_today + self.price_prediction_data_tomorrow:
+            for multiplier in range(12):
+                kwh_price.add_sample(
+                    name='kwh_price',
+                    labels={
+                        'provider': 'comed',
+                        'type': 'predicted',
+                    },
+                    value=price_prediction[1],
+                    timestamp=convert_comed_date(price_prediction[0])+60*5*multiplier
+                )
 
         for price_actual in self.price_actual_data_yesterday + self.price_actual_data_today:
-            kwh_price.add_sample(
-                name='kwh_price',
-                labels={
-                    'provider': 'comed',
-                    'type': 'actual',
-                },
-                value=price_actual[1],
-                timestamp=convert_comed_date(price_actual[0])
-            )
+            for multiplier in range(12):
+                kwh_price.add_sample(
+                    name='kwh_price',
+                    labels={
+                        'provider': 'comed',
+                        'type': 'actual',
+                    },
+                    value=price_actual[1],
+                    timestamp=convert_comed_date(price_actual[0])+60*5*multiplier
+                )
 
         yield kwh_price
 
