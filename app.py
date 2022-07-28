@@ -50,15 +50,6 @@ class ComEdCollector(object):
         self.price_prediction_data_today = json.loads(
             fixed_price_prediction_response)
 
-        # Get today's actual prices from ComEd
-        price_actual_response = requests.get(
-            url='https://hourlypricing.comed.com/rrtp/ServletFeed?type=day')
-        # Fix the bad JSON unquoted date strings
-        fixed_price_actual_response = price_actual_response.content.decode(
-        ).replace('Date.UTC', '"Date.UTC').replace('), ', ')", ')
-        self.price_actual_data_today = json.loads(
-            fixed_price_actual_response)
-
     def collect(self):
 
         # Set up the main metric
@@ -80,29 +71,20 @@ class ComEdCollector(object):
                         'type': 'predicted',
                     },
                     value=price_prediction[1],
-                    timestamp=convert_comed_date(price_prediction[0])+60*5*multiplier
+                    timestamp=convert_comed_date(
+                        price_prediction[0])+60*5*multiplier
                 )
 
-        for price_actual in self.price_actual_data_today:
-            for multiplier in range(12):
-                kwh_price.add_sample(
-                    name='kwh_price',
-                    labels={
-                        'provider': 'comed',
-                        'type': 'actual',
-                    },
-                    value=price_actual[1],
-                    timestamp=convert_comed_date(price_actual[0])+60*5*multiplier
-                )
-
-        now=datetime.now()
-        previous_hour=datetime(now.year,now.month,now.day,now.hour-1).timestamp()
-        previous_hour_prices=[]
-        current_hour=datetime(now.year,now.month,now.day,now.hour).timestamp()
-        current_hour_prices=[]
+        now = datetime.now()
+        previous_hour = datetime(
+            now.year, now.month, now.day, now.hour-1).timestamp()
+        previous_hour_prices = []
+        current_hour = datetime(now.year, now.month,
+                                now.day, now.hour).timestamp()
+        current_hour_prices = []
 
         for spot_price in self.spot_price_data:
-            timestamp=int(spot_price['millisUTC'])/1000
+            timestamp = int(spot_price['millisUTC'])/1000
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
@@ -115,34 +97,19 @@ class ComEdCollector(object):
             )
             if timestamp > previous_hour and timestamp <= current_hour:
                 previous_hour_prices.append(float(spot_price['price']))
-            if timestamp > current_hour:
-                current_hour_prices.append(float(spot_price['price']))
 
         if previous_hour_prices:
-            previous_hour_estimate=round(sum(previous_hour_prices) / len(previous_hour_prices),1)
-            for multiplier in range(12):
-                kwh_price.add_sample(
-                    name='kwh_price',
-                    labels={
-                        'provider': 'comed',
-                        'type': 'actual',
-                    },
-                    value=previous_hour_estimate,
-                    timestamp=previous_hour+60*5*multiplier
-                )
-
-        if current_hour_prices:
-            current_hour_estimate=round(sum(current_hour_prices) / len(current_hour_prices),1)
-            for multiplier in range(12):
-                kwh_price.add_sample(
-                    name='kwh_price',
-                    labels={
-                        'provider': 'comed',
-                        'type': 'actual',
-                    },
-                    value=current_hour_estimate,
-                    timestamp=current_hour+60*5*multiplier
-                )
+            previous_hour_estimate = round(
+                sum(previous_hour_prices) / len(previous_hour_prices), 1)
+            kwh_price.add_sample(
+                name='kwh_price',
+                labels={
+                    'provider': 'comed',
+                    'type': 'actual',
+                },
+                value=previous_hour_estimate,
+                timestamp=previous_hour+60*(now.min+1)
+            )
 
         yield kwh_price
 
