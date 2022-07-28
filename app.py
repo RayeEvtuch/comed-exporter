@@ -107,7 +107,7 @@ class ComEdCollector(object):
                     'type': 'actual',
                 },
                 value=previous_hour_estimate,
-                timestamp=now.timestamp()-(60*58)
+                timestamp=now.timestamp()-(60*56)
             )
 
         yield kwh_price
