@@ -81,7 +81,6 @@ class ComEdCollector(object):
         previous_hour_prices = []
         current_hour = datetime(now.year, now.month,
                                 now.day, now.hour).timestamp()
-        current_hour_prices = []
 
         for spot_price in self.spot_price_data:
             timestamp = int(spot_price['millisUTC'])/1000
@@ -108,13 +107,13 @@ class ComEdCollector(object):
                     'type': 'actual',
                 },
                 value=previous_hour_estimate,
-                timestamp=previous_hour+60*(now.minute+5)
+                timestamp=now.timestamp()-(60*58)
             )
 
         yield kwh_price
 
 
-comEdCollector = ComEdCollector()
+comEdCollector=ComEdCollector()
 comEdCollector.update_cache()
 REGISTRY.register(comEdCollector)
 
