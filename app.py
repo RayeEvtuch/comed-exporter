@@ -71,7 +71,12 @@ class ComEdCollector(object):
             ],
         )
 
+        now=datetime.now()
+        current_hour=datetime(now.year,now.month,now.day,now.hour).timestamp()
+        current_hour_prices=[]
+
         for spot_price in self.spot_price_data:
+            timestamp=int(spot_price['millisUTC'])/1000
             kwh_price.add_sample(
                 name='kwh_price',
                 labels={
@@ -80,8 +85,23 @@ class ComEdCollector(object):
                 },
                 value=spot_price['price'],
                 # Convert from milliseconds to seconds
-                timestamp=int(spot_price['millisUTC'])/1000
+                timestamp=timestamp
             )
+            if timestamp > current_hour:
+                current_hour_prices.append(float(spot_price['price']))
+
+        if current_hour_prices:
+            current_hour_estimate=round(sum(current_hour_prices) / len(current_hour_prices),1)
+            for multiplier in range(12):
+                kwh_price.add_sample(
+                    name='kwh_price',
+                    labels={
+                        'provider': 'comed',
+                        'type': 'actual',
+                    },
+                    value=current_hour_estimate,
+                    timestamp=current_hour+60*5*multiplier
+                )
 
         for price_prediction in self.price_prediction_data_today:
             for multiplier in range(12):
