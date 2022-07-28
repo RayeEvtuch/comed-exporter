@@ -101,15 +101,16 @@ class ComEdCollector(object):
         if previous_hour_prices:
             previous_hour_estimate = round(
                 sum(previous_hour_prices) / len(previous_hour_prices), 1)
-            kwh_price.add_sample(
-                name='kwh_price',
-                labels={
-                    'provider': 'comed',
-                    'type': 'actual',
-                },
-                value=previous_hour_estimate,
-                timestamp=previous_hour+60*(now.minute+1)
-            )
+            for multiplier in range(30):
+                kwh_price.add_sample(
+                    name='kwh_price',
+                    labels={
+                        'provider': 'comed',
+                        'type': 'actual',
+                    },
+                    value=previous_hour_estimate,
+                    timestamp=previous_hour+60*(now.minute+multiplier)
+                )
 
         yield kwh_price
 
