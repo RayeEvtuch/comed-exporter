@@ -95,7 +95,7 @@ class ComEdCollector(object):
                 # Convert from milliseconds to seconds
                 timestamp=timestamp
             )
-            if timestamp > previous_hour and timestamp <= current_hour:
+            if timestamp >= previous_hour and timestamp < current_hour:
                 previous_hour_prices.append(float(spot_price['price']))
 
         if previous_hour_prices:
@@ -108,7 +108,7 @@ class ComEdCollector(object):
                     'type': 'actual',
                 },
                 value=previous_hour_estimate,
-                timestamp=previous_hour+60*(now.min+1)
+                timestamp=previous_hour+60*(now.minute+1)
             )
 
         yield kwh_price
@@ -122,5 +122,5 @@ if __name__ == '__main__':
     # Start up the server to expose the metrics.
     start_http_server(8000)
     while True:
-        sleep(60*5)
+        sleep(60*3)
         comEdCollector.update_cache()
