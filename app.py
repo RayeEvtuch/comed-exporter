@@ -77,7 +77,7 @@ class ComEdCollector(object):
 
         now = datetime.now()
         previous_hour = datetime(
-            now.year, now.month, now.day, now.hour-1).timestamp()
+            now.year, now.month, now.day, now.hour).timestamp()-(60*60)
         previous_hour_prices = []
         current_hour = datetime(now.year, now.month,
                                 now.day, now.hour).timestamp()
