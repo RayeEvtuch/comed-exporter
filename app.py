@@ -83,6 +83,16 @@ class ComEdCollector(object):
                                 now.day, now.hour).timestamp()
         current_hour_prices = []
 
+        kwh_price.add_sample(
+            name='kwh_price',
+            labels={
+                'provider': 'comed',
+                'type': 'reference',
+            },
+            value=9.7,
+            timestamp=now.timestamp()
+        )
+
         for spot_price in self.spot_price_data:
             timestamp = int(spot_price['millisUTC'])/1000
             kwh_price.add_sample(
