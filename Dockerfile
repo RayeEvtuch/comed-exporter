@@ -1,6 +1,8 @@
 FROM python:3.8-slim
 
-RUN python -m pip install requests pytz prometheus_client
+COPY requirements.txt .
+
+RUN python -m pip install -r requirements.txt
 
 COPY app.py .
 
