@@ -34,8 +34,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
@@ -46,7 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Promote existing image
         run: |
-          for tag in ${{ steps.metadata.outputs.tags }}; do
+          echo "${{ steps.metadata.outputs.tags }}" | while read tag ; do
             docker buildx imagetools create \
-              --tag ${tag} ${{ steps.existing.outputs.tags[0] }}
+              --tag ${tag} ${{ steps.existing.outputs.tags }}
           done
