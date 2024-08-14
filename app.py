@@ -89,7 +89,9 @@ class ComEdCollector(object):
                 'provider': 'comed',
                 'type': 'reference',
             },
-            value=9.7,
+            # For now this is hardcoded since I can't find a decent API for ComEd's "Price to Compare"
+            # https://plugin.illinois.gov/understanding-the-price-to-compare/price-to-compare-comed.html
+            value=6.85,
             timestamp=now.timestamp()
         )
 
